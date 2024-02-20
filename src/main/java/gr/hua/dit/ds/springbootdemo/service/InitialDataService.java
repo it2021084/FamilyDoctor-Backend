@@ -3,6 +3,7 @@ package gr.hua.dit.ds.springbootdemo.service;
 import com.github.javafaker.Faker;
 import gr.hua.dit.ds.springbootdemo.entity.*;
 import gr.hua.dit.ds.springbootdemo.repo.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +19,11 @@ public class InitialDataService {
 
     private static final int LAST_CITIZEN_ID = 10;
     private static final int LAST_DOCTOR_ID = 10;
-    private static final int LAST_FAMILYDETAILS_ID=5;
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final CitizenRepository citizenRepository;
     private final DoctorRepository doctorRepository;
-    private final FamilyDetailsRepository familyDetailsRepository;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -31,13 +31,11 @@ public class InitialDataService {
                               RoleRepository roleRepository,
                               CitizenRepository citizenRepository,
                               DoctorRepository doctorRepository,
-                              FamilyDetailsRepository familyDetailsRepository,
                               PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.citizenRepository = citizenRepository;
         this.doctorRepository = doctorRepository;
-        this.familyDetailsRepository=familyDetailsRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -92,6 +90,7 @@ public class InitialDataService {
         final String specificHomeLocation1 = "Athens";
         final String specificEmail1 = "citizen1@familydoctor.com"; // Provide a unique email address
         final int specificFamilyMembers1 = 4; // Provide the desired number of family members
+        final int specificDoctorId1=2;
 
         // Check if the citizen with the specific email already exists
         if (!citizenRepository.findByEmail(specificEmail1).isPresent()) {
@@ -101,6 +100,7 @@ public class InitialDataService {
             citizen.setEmail(specificEmail1);
             citizen.setHomeLocation(specificHomeLocation1);
             citizen.setFamilyMembers(specificFamilyMembers1);
+            citizen.setDoctor(specificDoctorId1);
 
             this.citizenRepository.save(citizen);
         }
@@ -108,6 +108,7 @@ public class InitialDataService {
         final String specificHomeLocation2 = "Athens";
         final String specificEmail2 = "citizen2@familydoctor.com"; // Provide a unique email address
         final int specificFamilyMembers2 = 4; // Provide the desired number of family members
+        final int specificDoctorId2=2;
 
         // Check if the citizen with the specific email already exists
         if (!citizenRepository.findByEmail(specificEmail2).isPresent()) {
@@ -117,6 +118,7 @@ public class InitialDataService {
             citizen.setEmail(specificEmail2);
             citizen.setHomeLocation(specificHomeLocation2);
             citizen.setFamilyMembers(specificFamilyMembers2);
+            citizen.setDoctor(specificDoctorId2);
 
             this.citizenRepository.save(citizen);
         }
@@ -135,6 +137,7 @@ public class InitialDataService {
                 citizen.setEmail(email);
                 citizen.setHomeLocation(homeLocation);
                 citizen.setFamilyMembers(familyMembers);
+
 
                 this.citizenRepository.save(citizen);
                 return null;
@@ -158,6 +161,8 @@ public class InitialDataService {
             doctor.setEmail(specificDoctorEmail1);
             doctor.setLocation(specificLocation1);
             doctor.setMaxPatients(specificMaxPatients1);
+
+
 
             this.doctorRepository.save(doctor);
         }
@@ -195,6 +200,21 @@ public class InitialDataService {
                 doctor.setLocation(location);
                 doctor.setMaxPatients(maxPatients);
 
+                // Check if the doctor's ID is 2
+                if (doctor.getId() != null && doctor.getId() == 2) {
+                    // Assign citizens with ID 1 and 2 to the doctor with ID 2
+                    List<Citizen> specificCitizens = citizenRepository.findAllById(Arrays.asList(1L, 2L));
+                    doctor.setCitizens(specificCitizens);
+
+                    // Update the doctor in the repository after setting citizens
+                    this.doctorRepository.save(doctor);
+                } else {
+                    // Assign random citizens to other doctors
+                    List<Citizen> randomCitizens = citizenRepository.findAll(PageRequest.of(0, maxPatients)).getContent();
+                    doctor.setCitizens(randomCitizens);
+                    this.doctorRepository.save(doctor);
+                }
+
                 this.doctorRepository.save(doctor);
                 return null;
             });
@@ -202,22 +222,7 @@ public class InitialDataService {
     }
 
 
-    private void createFamilyDetails() {
-        for (int i = 1; i <= LAST_FAMILYDETAILS_ID; i++) {
-            final Faker faker = new Faker(new Random(i));
-            final String firstName = faker.name().firstName();
-            final String lastName = faker.name().lastName();
 
-            this.familyDetailsRepository.findByFirstName(firstName).orElseGet(() -> {
-                FamilyDetails familyDetails = new FamilyDetails();
-                familyDetails.setFirstName(firstName);
-                familyDetails.setLastName(lastName);
-
-                this.familyDetailsRepository.save(familyDetails);
-                return null;
-            });
-        }
-    }
 
 
     @PostConstruct
@@ -225,6 +230,5 @@ public class InitialDataService {
         createUsersAndRoles();
         createCitizens();
         createDoctors();
-        createFamilyDetails();
     }
 }
